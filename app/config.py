@@ -13,6 +13,7 @@ class Settings(BaseSettings):
     # Faqat shular foydalana oladi. Ikkalasi bo'sh bo'lsa bot hech kimga javob bermaydi.
     allowed_usernames: Annotated[list[str], NoDecode] = []
     allowed_user_ids: Annotated[list[int], NoDecode] = []
+    access_contact: str = ""  # ruxsatsiz foydalanuvchilarga ko'rsatiladigan @username
 
     postgres_user: str = "iqtisodchi"
     postgres_password: str = ""

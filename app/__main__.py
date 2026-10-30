@@ -29,7 +29,11 @@ async def main() -> None:
     dp = Dispatcher()
     # tartib muhim: ruxsat -> rate limit (DB'ga yetmasdan) -> ro'yxatdan o'tish tekshiruvi
     for observer in (dp.message, dp.callback_query):
-        observer.middleware(AccessMiddleware(settings.allowed_usernames, settings.allowed_user_ids))
+        observer.middleware(
+            AccessMiddleware(
+                settings.allowed_usernames, settings.allowed_user_ids, settings.access_contact
+            )
+        )
         observer.middleware(RateLimitMiddleware(settings.rate_limit_per_second))
         observer.middleware(RegistrationMiddleware(SessionFactory))
     dp.include_router(build_router())
