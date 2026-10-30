@@ -16,4 +16,4 @@ COPY --chown=bot:bot knowledge ./knowledge
 COPY --chown=bot:bot alembic.ini .
 USER bot
 
-CMD ["python", "-m", "app"]
+CMD ["sh", "-c", "alembic upgrade head && python -m app"]

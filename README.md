@@ -1,6 +1,6 @@
 # iqtisodchi-bot
 
-Shaxsiy kirim-chiqim Telegram boti. Tugmasiz, oddiy matn bilan ishlaydi:
+Shaxsiy xarajat Telegram boti. Oddiy matn (AI agent) + inline statistika tugmalari:
 "120 ming so'mlik non, sut va go'sht oldim" → AI tahlil qiladi → PostgreSQL yangilanadi.
 
 ## Stack
@@ -10,7 +10,7 @@ aiogram 3 · PostgreSQL 16 + pgvector · Docker Compose · Claude API · RAG · 
 ```
 app/
   bot/handlers/      matnli xabar handlerlari
-  bot/middlewares/   whitelist (ALLOWED_USER_IDS), rate limit
+  bot/middlewares/   ruxsat (username/ID), ro'yxatdan o'tish (telefon), rate limit
   db/models, repositories/   SQLAlchemy modellar va so'rovlar
   services/          kirim/chiqim, kunlik limit logikasi
   ai/                xabarni tranzaksiyaga aylantirish (structured output)
@@ -22,7 +22,8 @@ migrations/          Alembic
 ## Xavfsizlik
 - Polling (webhook yo'q) — tashqaridan hech qanday port ochilmaydi
 - Postgres faqat `127.0.0.1` da
-- Faqat `ALLOWED_USER_IDS` dagi foydalanuvchilar; boshqalar jim tashlanadi
+- Faqat `ALLOWED_USERNAMES` / `ALLOWED_USER_IDS` dagilar foydalana oladi, boshqalar jim tashlanadi
+- Ruxsat berilganlar ham avval o'z telefon raqamini ulashishi shart (raqam Telegram ID bilan saqlanadi)
 - Rate limit + konteynerlarga CPU/RAM limit (noutbukni himoya qilish)
 - Bot konteyneri: non-root, read-only FS, `cap_drop: ALL`
 
