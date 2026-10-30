@@ -8,6 +8,7 @@ from app.bot.handlers import build_router
 from app.bot.middlewares.access import AccessMiddleware
 from app.bot.middlewares.ratelimit import RateLimitMiddleware, SlidingWindow
 from app.bot.middlewares.registration import RegistrationMiddleware
+from app.bot.panel import Panel
 from app.config import get_settings
 from app.db.base import SessionFactory, engine
 from app.rag.embeddings import make_embedder
@@ -39,6 +40,7 @@ async def main() -> None:
             sessions=SessionFactory,
             settings=settings,
             guard=guard,
+            panel=Panel(settings.delete_user_messages),
             agent=Agent(settings, SessionFactory),
             ai_window=SlidingWindow(settings.rate_limit_ai_per_hour, 3600),
         )

@@ -1,3 +1,5 @@
+import contextlib
+
 from aiogram import F, Router
 from aiogram.exceptions import TelegramBadRequest
 from aiogram.filters import Command
@@ -5,6 +7,7 @@ from aiogram.types import BufferedInputFile, CallbackQuery, Message, ReplyKeyboa
 from sqlalchemy.ext.asyncio import async_sessionmaker
 
 from app.bot import keyboards, views
+from app.bot.panel import Panel
 from app.config import Settings
 from app.services import ledger
 from app.services.export import build_csv
@@ -22,14 +25,34 @@ WELCOME = (
 
 
 @router.message(Command("start", "menu"))
-async def start(message: Message, sessions: async_sessionmaker):
+async def start(message: Message, sessions: async_sessionmaker, panel: Panel):
     async with sessions() as s:
         await ledger.ensure_user(s, message.from_user.id)
-    await message.answer(WELCOME, reply_markup=keyboards.main_menu())
+    await _show_menu(message, panel)
+
+
+@router.message(Command("clear"))
+async def clear(message: Message, panel: Panel):
+    """Oxirgi ~1000 ta xabarni o'chirishga urinadi (Telegram faqat 48 soatdan yangilarini ruxsat beradi)."""
+    chat_id, top = message.chat.id, message.message_id
+    for hi in range(top, max(top - 1000, 0), -100):
+        ids = list(range(hi, max(hi - 100, 0), -1))
+        with contextlib.suppress(TelegramBadRequest):
+            await message.bot.delete_messages(chat_id, ids)
+    panel.forget(chat_id)
+    sent = await message.bot.send_message(chat_id, WELCOME, reply_markup=keyboards.main_menu())
+    panel.remember(chat_id, sent.message_id)
+
+
+async def _show_menu(message: Message, panel: Panel) -> None:
+    await panel.drop_previous(message.bot, message.chat.id)
+    sent = await message.answer(WELCOME, reply_markup=keyboards.main_menu())
+    panel.remember(message.chat.id, sent.message_id)
+    await panel.discard_user_message(message)
 
 
 @router.message(F.contact)
-async def contact(message: Message, sessions: async_sessionmaker):
+async def contact(message: Message, sessions: async_sessionmaker, panel: Panel):
     c = message.contact
     # faqat o'z raqami: boshqa odamning kontaktini yuborib aldab bo'lmaydi
     if c.user_id != message.from_user.id:
@@ -44,8 +67,10 @@ async def contact(message: Message, sessions: async_sessionmaker):
         except ledger.LedgerError as e:
             await message.answer(str(e))
             return
-    await message.answer("✅ Raqam saqlandi.", reply_markup=ReplyKeyboardRemove())
-    await message.answer(WELCOME, reply_markup=keyboards.main_menu())
+    # ReplyKeyboardRemove faqat xabar bilan birga ishlaydi: qisqa xabar yuborib, darhol o'chiramiz
+    note = await message.answer("✅ Raqam saqlandi.", reply_markup=ReplyKeyboardRemove())
+    await panel.delete(message.bot, message.chat.id, note.message_id)
+    await _show_menu(message, panel)
 
 
 @router.callback_query(F.data.startswith("stat:"))

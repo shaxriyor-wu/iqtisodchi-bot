@@ -34,6 +34,7 @@ class Settings(BaseSettings):
     rate_limit_per_second: int = 5
     rate_limit_ai_per_hour: int = 60
     max_message_length: int = 1000
+    delete_user_messages: bool = True  # javobdan keyin foydalanuvchi xabarini o'chirish
 
     log_level: str = "INFO"
 
