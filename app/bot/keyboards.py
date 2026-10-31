@@ -1,29 +1,24 @@
-from aiogram.types import InlineKeyboardMarkup, KeyboardButton, ReplyKeyboardMarkup
-from aiogram.utils.keyboard import InlineKeyboardBuilder
+from aiogram.types import KeyboardButton, ReplyKeyboardMarkup
+from aiogram.utils.keyboard import ReplyKeyboardBuilder
 
-BUTTONS = [
-    ("📅 Bugungi limit", "stat:today"),
-    ("📈 O'rtacha kunlik", "stat:avg"),
-    ("🔝 Maksimum kunlik", "stat:max"),
-    ("💰 Oylik qolgan", "stat:month"),
-    ("🗂 Bo'limlar", "stat:cats"),
-    ("🕘 Oxirgi xarajatlar", "stat:recent"),
-    ("📄 CSV (10 kun)", "stat:csv"),
-]
+BUTTONS = {
+    "📅 Bugungi limit": "today",
+    "📈 O'rtacha kunlik": "avg",
+    "🔝 Maksimum kunlik": "max",
+    "💰 Oylik qolgan": "month",
+    "🗂 Bo'limlar": "cats",
+    "🕘 Oxirgi xarajatlar": "recent",
+    "📄 CSV (10 kun)": "csv",
+}
 
 
-def main_menu() -> InlineKeyboardMarkup:
-    kb = InlineKeyboardBuilder()
-    for text, data in BUTTONS:
-        kb.button(text=text, callback_data=data)
+def main_menu() -> ReplyKeyboardMarkup:
+    """Doimiy reply klaviatura: foydalanuvchi yopmaguncha pastda turadi."""
+    kb = ReplyKeyboardBuilder()
+    for text in BUTTONS:
+        kb.button(text=text)
     kb.adjust(2)
-    return kb.as_markup()
-
-
-def back_menu() -> InlineKeyboardMarkup:
-    kb = InlineKeyboardBuilder()
-    kb.button(text="⬅️ Menyu", callback_data="stat:menu")
-    return kb.as_markup()
+    return kb.as_markup(resize_keyboard=True, is_persistent=True)
 
 
 def share_phone() -> ReplyKeyboardMarkup:

@@ -2,7 +2,6 @@ import contextlib
 import logging
 
 from aiogram import F, Router
-from aiogram.exceptions import TelegramBadRequest
 from aiogram.types import BufferedInputFile, Message
 
 from app.ai.agent import Agent
@@ -49,18 +48,13 @@ async def chat(
             answer = "Xatolik yuz berdi, birozdan keyin qayta urinib ko'ring."
 
     answer = answer[:MAX_TEXT]
-    if files:
-        # fayllar panel tepasida, javob matni ularning ostida bo'lsin
-        await panel.drop_previous(bot, chat_id)
-        for name, data in files:
-            await message.answer_document(BufferedInputFile(data, filename=name))
-        sent = await message.answer(answer, reply_markup=keyboards.main_menu())
-        panel.remember(chat_id, sent.message_id)
-    else:
-        try:
-            await pending.edit_text(answer, reply_markup=keyboards.main_menu())
-        except TelegramBadRequest:
-            sent = await message.answer(answer, reply_markup=keyboards.main_menu())
-            panel.remember(chat_id, sent.message_id)
+    # Reply klaviatura xabar tahrirlanganda emas, yangi xabar bilan qayta o'rnatiladi:
+    # shunda u hech qachon yo'qolmaydi. "⏳" xabari o'chiriladi.
+    await panel.delete(bot, chat_id, pending.message_id)
+    panel.forget(chat_id)
+    for name, data in files:
+        await message.answer_document(BufferedInputFile(data, filename=name))
+    sent = await message.answer(answer, reply_markup=keyboards.main_menu())
+    panel.remember(chat_id, sent.message_id)
     with contextlib.suppress(Exception):
         await panel.discard_user_message(message)

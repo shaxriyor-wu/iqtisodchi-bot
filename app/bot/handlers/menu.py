@@ -3,7 +3,7 @@ import contextlib
 from aiogram import F, Router
 from aiogram.exceptions import TelegramBadRequest
 from aiogram.filters import Command
-from aiogram.types import BufferedInputFile, CallbackQuery, Message, ReplyKeyboardRemove
+from aiogram.types import BufferedInputFile, Message
 from sqlalchemy.ext.asyncio import async_sessionmaker
 
 from app.bot import keyboards, views
@@ -20,7 +20,7 @@ WELCOME = (
     "• «oyiga 2 mln so'm sarflay olaman»\n"
     "• «taksiga 15 ming berdim»\n"
     "• «transportga oyiga 300 ming limit qo'y»\n\n"
-    "Statistikani tugmalardan ko'ring 👇"
+    "Statistikani pastdagi tugmalardan ko'ring 👇"
 )
 
 
@@ -67,48 +67,43 @@ async def contact(message: Message, sessions: async_sessionmaker, panel: Panel):
         except ledger.LedgerError as e:
             await message.answer(str(e))
             return
-    # ReplyKeyboardRemove faqat xabar bilan birga ishlaydi: qisqa xabar yuborib, darhol o'chiramiz
-    note = await message.answer("✅ Raqam saqlandi.", reply_markup=ReplyKeyboardRemove())
-    await panel.delete(message.bot, message.chat.id, note.message_id)
+    # share_phone klaviaturasi _show_menu'dagi doimiy menyu bilan almashadi
     await _show_menu(message, panel)
 
 
-@router.callback_query(F.data.startswith("stat:"))
-async def stat(call: CallbackQuery, sessions: async_sessionmaker, settings: Settings):
-    action = call.data.split(":", 1)[1]
+@router.message(F.text.in_(keyboards.BUTTONS))
+async def stat(
+    message: Message,
+    sessions: async_sessionmaker,
+    settings: Settings,
+    panel: Panel,
+):
+    action = keyboards.BUTTONS[message.text]
+    bot, chat_id, user_id = message.bot, message.chat.id, message.from_user.id
+    await panel.drop_previous(bot, chat_id)
     if action == "csv":
         async with sessions() as s:
-            rows = await ledger.history(s, call.from_user.id, 10)
-        if not rows:
-            await call.answer("Oxirgi 10 kunda xarajat yo'q.", show_alert=True)
+            rows = await ledger.history(s, user_id, 10)
+        if rows:
+            await message.answer_document(
+                BufferedInputFile(build_csv(rows, settings.tz), filename="xarajatlar_10_kun.csv")
+            )
+            await panel.discard_user_message(message)
             return
-        await call.message.answer_document(
-            BufferedInputFile(build_csv(rows, settings.tz), filename="xarajatlar_10_kun.csv")
-        )
-        await call.answer()
-        return
-    if action == "menu":
-        text, markup = WELCOME, keyboards.main_menu()
+        text = "Oxirgi 10 kunda xarajat yo'q."
     else:
         async with sessions() as s:
             if action == "recent":
-                text = views.recent(await ledger.recent_expenses(s, call.from_user.id))
+                text = views.recent(await ledger.recent_expenses(s, user_id))
             else:
-                ov = await ledger.get_overview(s, call.from_user.id)
-                render = {
+                ov = await ledger.get_overview(s, user_id)
+                text = {
                     "today": views.today,
                     "avg": views.average,
                     "max": views.max_daily,
                     "month": views.month,
                     "cats": views.categories,
-                }.get(action)
-                if render is None:
-                    await call.answer()
-                    return
-                text = render(ov)
-        markup = keyboards.back_menu()
-    try:
-        await call.message.edit_text(text, reply_markup=markup)
-    except TelegramBadRequest:
-        pass  # matn o'zgarmagan
-    await call.answer()
+                }[action](ov)
+    sent = await message.answer(text, reply_markup=keyboards.main_menu())
+    panel.remember(chat_id, sent.message_id)
+    await panel.discard_user_message(message)

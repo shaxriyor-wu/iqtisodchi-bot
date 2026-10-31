@@ -1,6 +1,6 @@
 # iqtisodchi-bot
 
-Shaxsiy xarajat Telegram boti. Oddiy matn (AI agent) + inline statistika tugmalari:
+Shaxsiy xarajat Telegram boti. Oddiy matn (AI agent) + doimiy (reply) statistika tugmalari:
 "120 ming so'mlik non, sut va go'sht oldim" → AI tahlil qiladi → PostgreSQL yangilanadi.
 
 ## Stack
